@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SNEAKERS FOR HOOPERS</title>
+<style>
+  body { font-family: Arial, sans-serif; margin:0; padding:20px; background:#80681b; }
+  header { text-align:center; margin-bottom:15px; }
+  nav { text-align:center; margin-bottom:15px; }
+  nav button { padding:8px 12px; margin:4px; cursor:pointer; border-radius:6px; border:1px solid #ccc; background:#fff; }
+  .produits { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; }
+  .produit { background:#fff; padding:12px; width:200px; border-radius:10px; box-shadow:0 0 5px rgba(0,0,0,0.15); text-align:center; cursor:pointer; }
+  .produit img { width:100%; height:150px; object-fit:cover; border-radius:8px; }
+  .produit h2 { font-size:16px; margin:8px 0 4px; }
+  .produit p { margin:6px 0; }
+  .produit button { padding:8px 10px; cursor:pointer; border-radius:6px; border:none; background:#007bff; color:#fff; }
+  #panier { background:#fff; padding:12px; margin-top:20px; border-radius:10px; box-shadow:0 0 5px rgba(0,0,0,0.15); max-width:900px; margin-left:auto; margin-right:auto; }
+  #panier ul { list-style:none; padding:0; margin:0; }
+  .ligne-panier { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eee; }
+  .controls { display:flex; align-items:center; gap:6px; }
+  .qty-btn { padding:4px 8px; cursor:pointer; border-radius:4px; border:1px solid #ccc; background:#fff; }
+  .supprimer { background:#e74c3c; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
+  .payer-btn { background:#28a745; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; margin-top:10px; }
+  .small { font-size:13px; color:#555; }
+  /* modal improved */
+  .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); align-items:center; justify-content:center; }
+  .modal.show { display:flex; }
+  .modal-content { background-color:#fff; border-radius:10px; width:90%; max-width:420px; max-height:80vh; overflow:auto; padding:18px; text-align:center; position:relative; }
+  .modal-content img { width:100%; border-radius:8px; margin-bottom:10px; }
+  .close { position:absolute; right:12px; top:8px; font-size:22px; cursor:pointer; background:#eee; width:30px; height:30px; line-height:30px; text-align:center; border-radius:50%; }
+  .error { color:#e74c3c; font-size:13px; margin-top:8px; display:none; }
+  @media (max-width:600px) { .produit { width:45%; } .modal-content{ margin-top:0; } }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="images/logo.jpeg" alt="Logo de la boutique" id="logo">
+  <h1>SNEAKERS FOR HOOPERS 🐱‍👤</h1>
+</header>
+
+<nav>
+  <button onclick="afficherCategorie('basket')">Basket</button>
+  <button onclick="afficherCategorie('sneakers')">Sneakers</button>
+  <button onclick="afficherCategorie('maillot')">Maillots</button>
+  <button onclick="afficherCategorie('jeux')">Jeux vidéo</button>
+  <button onclick="afficherCategorie('puffs')">Puffs</button>
+</nav>
+
+<main>
+  <div id="produits" class="produits"></div>
+
+  <div id="panier">
+    <h2>Panier</h2>
+    <ul id="listePanier"></ul>
+    <p class="small">Total : <strong><span id="total">0.00</span> XAF</strong></p>
+    <button class="payer-btn" onclick="payer()">Payer avec Airtel Money</button>
+    <p class="small" style="margin-top:8px">Après le paiement, envoie la capture ou l'ID de transaction à <strong>ton-email@exemple.com</strong></p>
+  </div>
+</main>
+
+<!-- Modal fiche produit -->
+<div id="modalProduit" class="modal" aria-hidden="true">
+  <div class="modal-content" role="dialog" aria-modal="true">
+    <div class="close" id="modalClose" title="Fermer">&times;</div>
+    <img id="modalImage" src="" alt="">
+    <h2 id="modalNom"></h2>
+    <p id="modalDescription" class="small"></p>
+    <p><strong>Tailles disponibles :</strong></p>
+    <select id="modalTaillesSelect" style="padding:8px;border-radius:6px;margin-bottom:10px;width:80%;"></select>
+    <div id="modalError" class="error">Veuillez sélectionner une taille.</div>
+    <p><strong>Prix :</strong> <span id="modalPrix"></span> XAF</p>
+    <div style="margin-top:12px;">
+      <button id="btnAjouterPanier" style="padding:10px 12px;border-radius:6px;cursor:pointer;background:#007bff;color:#fff;border:none;">Ajouter au panier</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const airtelBaseLink = "https://TON_LIEN_AIRTEL";
+const merchantEmail = "ton-email@exemple.com";
+
+const produitsData = {
+  basket: [],
+  sneakers: [
+    { nom: "PG6", prix: 17000, image: "images/PG6 44-45.jpeg", description: "Chaussure PG6 confortable et réactive.", tailles: "44,45" },
+    { nom: "KYRIE INFINITY", prix: 20000, image: "images/KYRIE INFINITY 46-47.jpeg", description: "Kyrie Infinity - maintien et légèreté.", tailles: "46,47" },
+    { nom: "JA2 (1)", prix: 17000, image: "images/JA2 42-43.5.jpeg", description: "JA2 performance 42-43.5.", tailles: "42,43,43.5" },
+    { nom: "TATUM 1 (1)", prix: 14000, image: "images/TATUM 1 44-45.jpeg", description: "Tatum 1 édition standard.", tailles: "44,45" },
+    { nom: "TATUM 1 (2)", prix: 20000, image: "images/TATUM1 45-46.jpeg", description: "Tatum 1 premium.", tailles: "45,46" },
+    { nom: "LEBRON WITNESS8", prix: 16000, image: "images/LEBRON WITNESS8 44-45.jpeg", description: "LeBron Witness8 - amorti maximal.", tailles: "44,45" },
+    { nom: "TATUM1 (3)", prix: 18000, image: "images/TATUM 1  43-45.jpeg", description: "Tatum1 édition 43-45.", tailles: "43,44,45" },
+    { nom: "AE 1 HIGH", prix: 14000, image: "images/AE 1 HIGH 42-45.jpeg", description: "AE 1 High - maintien cheville.", tailles: "42,43,44,45" },
+    { nom: "JA2 (2)", prix: 14000, image: "images/JA2 42-46.jpeg", description: "JA2 large gamme.", tailles: "42,43,44,45,46" },
+    { nom: "HARDEN VOL.8 (1)", prix: 14000, image: "images/HARDEN VOL.8 39-42.jpeg", description: "Harden Vol.8 petite pointure.", tailles: "39,40,41,42" },
+    { nom: "GT CUT V3", prix: 15000, image: "images/GT CUT V3 41-46.jpeg", description: "GT Cut V3 - excellente traction.", tailles: "41,42,43,44,45,46" },
+    { nom: "HARDEN VOL.8 (2)", prix: 15000, image: "images/HARDEN VOL.8 41-43.jpeg", description: "Harden Vol.8 moyenne pointure.", tailles: "41,42,43" }
+  ],
+  maillot: [],
+  jeux: [],
+  puffs: []
+};
+
+let panier = [];
+let categorieActuelle = 'sneakers';
+
+/* util */
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, function (m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); });
+}
+
+/* afficher produits */
+function afficherCategorie(cat) {
+  categorieActuelle = cat;
+  const cont = document.getElementById("produits");
+  cont.innerHTML = "";
+  const liste = produitsData[cat] || [];
+  if (liste.length === 0) {
+    cont.innerHTML = '<p class="small" style="text-align:center">Aucun produit dans cette catégorie pour l\'instant.</p>';
+    return;
+  }
+  liste.forEach((p) => {
+    const div = document.createElement("div");
+    div.className = "produit";
+    div.innerHTML = `
+      <img src="${encodeURI(p.image)}" alt="${escapeHtml(p.nom)}">
+      <h2>${escapeHtml(p.nom)}</h2>
+      <p>Prix : ${p.prix} XAF</p>
+      <button type="button">Voir le produit</button>
+    `;
+    const btn = div.querySelector("button");
+    btn.addEventListener("click", (e) => { e.stopPropagation(); ouvrirModal(p); });
+    div.addEventListener("click", () => ouvrirModal(p));
+    cont.appendChild(div);
+  });
+}
+
+/* panier */
+function ajouterAuPanier(nom, prix) {
+  const index = panier.findIndex(it => it.nom === nom && it.prix === prix);
+  if (index >= 0) { panier[index].qty += 1; } else { panier.push({ nom, prix, qty: 1 }); }
+  afficherPanier();
+}
+function afficherPanier() {
+  const liste = document.getElementById("listePanier");
+  liste.innerHTML = "";
+  let total = 0;
+  if (panier.length === 0) {
+    liste.innerHTML = '<li class="small">Le panier est vide.</li>';
+  } else {
+    panier.forEach((item, idx) => {
+      const ligne = document.createElement("li");
+      ligne.className = "ligne-panier";
+      const left = document.createElement("div");
+      left.style.flex = "1";
+      left.innerHTML = `<strong>${escapeHtml(item.nom)}</strong><div class="small">${item.prix} XAF</div>`;
+      const controls = document.createElement("div");
+      controls.className = "controls";
+      const btnMinus = document.createElement("button");
+      btnMinus.className = "qty-btn"; btnMinus.textContent = "-";
+      btnMinus.onclick = () => { modifierQty(idx, item.qty - 1); };
+      const qtySpan = document.createElement("span"); qtySpan.textContent = item.qty;
+      const btnPlus = document.createElement("button");
+      btnPlus.className = "qty-btn"; btnPlus.textContent = "+";
+      btnPlus.onclick = () => { modifierQty(idx, item.qty + 1); };
+      const prixTotalItem = document.createElement("div");
+      prixTotalItem.className = "small"; prixTotalItem.style.minWidth = "80px";
+      prixTotalItem.textContent = (item.prix * item.qty).toFixed(2) + " XAF";
+      const btnSup = document.createElement("button"); btnSup.className = "supprimer"; btnSup.textContent = "Supprimer";
+      btnSup.onclick = () => { supprimerItem(idx); };
+      controls.appendChild(btnMinus); controls.appendChild(qtySpan); controls.appendChild(btnPlus);
+      ligne.appendChild(left); ligne.appendChild(controls); ligne.appendChild(prixTotalItem); ligne.appendChild(btnSup);
+      liste.appendChild(ligne);
+      total += item.prix * item.qty;
+    });
+  }
+  document.getElementById("total").textContent = total.toFixed(2);
+}
+function modifierQty(index, nouvelleQty) {
+  if (nouvelleQty <= 0) { panier.splice(index, 1); } else { panier[index].qty = nouvelleQty; }
+  afficherPanier();
+}
+function supprimerItem(index) { panier.splice(index, 1); afficherPanier(); }
+
+/* commande / paiement */
+function genererOrderID() {
+  const t = Date.now().toString();
+  const rnd = Math.floor(Math.random() * 900 + 100).toString();
+  return 'CMD' + t.slice(-8) + rnd;
+}
+function payer() {
+  if (panier.length === 0) { alert("Votre panier est vide !"); return; }
+  const orderId = genererOrderID();
+  const total = panier.reduce((acc, it) => acc + it.prix * it.qty, 0).toFixed(2);
+  let summary = `Commande ${orderId}\n\nProduits:\n`;
+  panier.forEach(it => {
+    summary += `- ${it.nom} x${it.qty} : ${ (it.prix * it.qty).toFixed(2) } XAF\n`;
+  });
+  summary += `\nTotal: ${total} XAF\n\nRéférence commande: ${orderId}\n\nMerci de payer via Airtel Money en indiquant la référence ci-dessus (si possible), puis envoyez la capture ou l'ID de transaction à ${merchantEmail}.\n`;
+  if (airtelBaseLink && airtelBaseLink !== "https://TON_LIEN_AIRTEL") {
+    try {
+      const url = new URL(airtelBaseLink);
+      url.searchParams.set('amount', total);
+      url.searchParams.set('reference', orderId);
+      window.open(url.toString(), '_blank');
+    } catch (e) {
+      const airtelLink = airtelBaseLink + (airtelBaseLink.includes('?') ? '&' : '?') + 'amount=' + encodeURIComponent(total) + '&reference=' + encodeURIComponent(orderId);
+      window.open(airtelLink, '_blank');
+    }
+  } else {
+    alert("Aucun lien Airtel configuré. Remplace airtelBaseLink dans le script par ton lien Airtel Business.");
+  }
+  const subject = `Commande ${orderId} - Paiement Airtel`;
+  const body = summary + "\nAdresse de livraison (remplir ici):\nNom:\nTéléphone:\nAdresse:\n\nMerci !";
+  const mailto = `mailto:${encodeURIComponent(merchantEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailto, '_blank');
+  panier = [];
+  afficherPanier();
+}
+
+/* modal: ouverture / fermeture et taille obligatoire */
+function ouvrirModal(produit) {
+  const modal = document.getElementById("modalProduit");
+  document.getElementById("modalImage").src = encodeURI(produit.image);
+  document.getElementById("modalNom").textContent = produit.nom;
+  document.getElementById("modalDescription").textContent = produit.description || "Pas de description disponible.";
+  document.getElementById("modalPrix").textContent = produit.prix;
+  const select = document.getElementById("modalTaillesSelect");
+  const error = document.getElementById("modalError");
+  error.style.display = "none";
+  select.innerHTML = "";
+  const tailles = (produit.tailles || "").split(",").map(t => t.trim()).filter(t => t);
+  if (tailles.length === 0) {
+    const option = document.createElement("option"); option.value = ""; option.textContent = "Tailles non spécifiées"; select.appendChild(option);
+    select.disabled = true;
+  } else {
+    // placeholder obligatoire
+    const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "Choisir une taille"; placeholder.selected = true; placeholder.disabled = true;
+    select.appendChild(placeholder);
+    tailles.forEach(t => {
+      const option = document.createElement("option"); option.value = t; option.textContent = t; select.appendChild(option);
+    });
+    select.disabled = false;
+  }
+
+  const btn = document.getElementById("btnAjouterPanier");
+  btn.onclick = () => {
+    if (!select.value) {
+      error.style.display = "block";
+      select.focus();
+      return;
+    }
+    const taille = select.value;
+    const nomAvecTaille = `${produit.nom} (Taille ${taille})`;
+    ajouterAuPanier(nomAvecTaille, produit.prix);
+    fermerModal();
+  };
+
+  // show modal and prevent background scroll
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+  document.body.style.overflow = 'hidden';
+  // focus for keyboard
+  select.focus();
+}
+
+function fermerModal() {
+  const modal = document.getElementById("modalProduit");
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+  document.body.style.overflow = '';
+}
+
+/* close handlers */
+document.getElementById('modalClose').addEventListener('click', fermerModal);
+document.getElementById('modalProduit').addEventListener('click', function(e){
+  if (e.target === this) fermerModal();
+});
+document.addEventListener('keydown', function(e){
+  if (e.key === "Escape") fermerModal();
+});
+
+/* init */
+window.onload = function() {
+  afficherCategorie(categorieActuelle);
+  afficherPanier();
+};
+</script>
+
+</body>
+</html>
