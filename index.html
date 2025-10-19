@@ -81,6 +81,11 @@
 const airtelBaseLink = "https://TON_LIEN_AIRTEL";
 const merchantEmail = "ton-email@exemple.com";
 
+/* helper: encode chaque segment du chemin pour gérer espaces/parenthèses/etc */
+function safePath(path){
+  return path.split('/').map(part => encodeURIComponent(part)).join('/');
+}
+
 const produitsData = {
   basket: [],
   sneakers: [
@@ -90,7 +95,8 @@ const produitsData = {
     { nom: "TATUM 1 (1)", prix: 14000, image: "images/TATUM 1 44-45.jpeg", description: "Tatum 1 édition standard.", tailles: "44,45" },
     { nom: "TATUM 1 (2)", prix: 20000, image: "images/TATUM1 45-46.jpeg", description: "Tatum 1 premium.", tailles: "45,46" },
     { nom: "LEBRON WITNESS8", prix: 16000, image: "images/LEBRON WITNESS8 44-45.jpeg", description: "LeBron Witness8 - amorti maximal.", tailles: "44,45" },
-    { nom: "TATUM1 (3)", prix: 18000, image: "images/TATUM 1  43-45.jpeg", description: "Tatum1 édition 43-45.", tailles: "43,44,45" },
+    /* Correction: anciennement "images/TATUM 1  43-45.jpeg" (double espace) -> corrigé ci-dessous */
+    { nom: "TATUM1 (3)", prix: 18000, image: "images/TATUM 1 43-45.jpeg", description: "Tatum1 édition 43-45.", tailles: "43,44,45" },
     { nom: "AE 1 HIGH", prix: 14000, image: "images/AE 1 HIGH 42-45.jpeg", description: "AE 1 High - maintien cheville.", tailles: "42,43,44,45" },
     { nom: "JA2 (2)", prix: 14000, image: "images/JA2 42-46.jpeg", description: "JA2 large gamme.", tailles: "42,43,44,45,46" },
     { nom: "HARDEN VOL.8 (1)", prix: 14000, image: "images/HARDEN VOL.8 39-42.jpeg", description: "Harden Vol.8 petite pointure.", tailles: "39,40,41,42" },
@@ -124,7 +130,7 @@ function afficherCategorie(cat) {
     const div = document.createElement("div");
     div.className = "produit";
     div.innerHTML = `
-      <img src="${encodeURI(p.image)}" alt="${escapeHtml(p.nom)}">
+      <img src="${safePath(p.image)}" alt="${escapeHtml(p.nom)}">
       <h2>${escapeHtml(p.nom)}</h2>
       <p>Prix : ${p.prix} XAF</p>
       <button type="button">Voir le produit</button>
@@ -222,7 +228,7 @@ function payer() {
 /* modal: ouverture / fermeture et taille obligatoire */
 function ouvrirModal(produit) {
   const modal = document.getElementById("modalProduit");
-  document.getElementById("modalImage").src = encodeURI(produit.image);
+  document.getElementById("modalImage").src = safePath(produit.image);
   document.getElementById("modalNom").textContent = produit.nom;
   document.getElementById("modalDescription").textContent = produit.description || "Pas de description disponible.";
   document.getElementById("modalPrix").textContent = produit.prix;
